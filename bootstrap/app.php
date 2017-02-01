@@ -23,7 +23,7 @@ $app = new Laravel\Lumen\Application(
     realpath(__DIR__.'/../')
 );
 
-// $app->withFacades();
+$app->withFacades();
 
 // $app->withEloquent();
 
@@ -81,6 +81,10 @@ $app->singleton(
 // $app->register(App\Providers\AppServiceProvider::class);
 // $app->register(App\Providers\AuthServiceProvider::class);
 // $app->register(App\Providers\EventServiceProvider::class);
+$app->register('Maatwebsite\Excel\ExcelServiceProvider');
+class_alias('Maatwebsite\Excel\Facades\Excel', 'Excel');
+class_alias('Illuminate\Support\Facades\Response', 'Response');
+class_alias('Illuminate\Support\Facades\Config', 'Config');
 
 /*
 |--------------------------------------------------------------------------
