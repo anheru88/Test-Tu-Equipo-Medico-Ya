@@ -6,6 +6,10 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * Class Product
+ * @package App
+ */
 class Product extends Model
 {
 
@@ -26,4 +30,15 @@ class Product extends Model
     protected $hidden = [
 
     ];
+
+
+    /**
+     * Las categorias que pertenecen a un Producto.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
+     */
+    public function categories()
+    {
+        return $this->belongsToMany('App\Category');
+    }
 }
