@@ -14,7 +14,8 @@ class File extends Model
         'name',
         'path_file',
         'fields',
-        'finished'
+        'finished',
+        'last_line'
     ];
 
     /**
