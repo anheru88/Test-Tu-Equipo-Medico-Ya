@@ -11,6 +11,4 @@
 |
 */
 
-$app->get('/', function () use ($app) {
-    return $app->version();
-});
+$app->get('/', 'FileManagerController@show_file_upload_page');
