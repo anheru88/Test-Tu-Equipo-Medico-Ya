@@ -12,3 +12,5 @@
 */
 
 $app->get('/', 'FileManagerController@show_file_upload_page');
+
+$app->post('/', 'FileManagerController@upload_file');
