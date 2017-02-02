@@ -41,4 +41,15 @@ class Product extends Model
     {
         return $this->belongsToMany('App\Category');
     }
+
+
+    /**
+     * Regresa las imagenes que posee un Producto.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function images()
+    {
+        return $this->hasMany('App\Image');
+    }
 }
