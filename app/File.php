@@ -3,6 +3,8 @@
 namespace App;
 
 
+use Illuminate\Database\Eloquent\Model;
+
 class File extends Model
 {
     /**
@@ -13,7 +15,8 @@ class File extends Model
     protected $fillable = [
         'name',
         'path_file',
-        'fields',
+        'fields_file',
+        'fields_database',
         'finished',
         'last_line'
     ];

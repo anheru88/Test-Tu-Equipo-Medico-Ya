@@ -17,7 +17,8 @@ class CreateFileRepositoryTable extends Migration
             $table->increments('id');
             $table->string('name');
             $table->string('path_file');
-            $table->string('fields');
+            $table->string('fields_file');
+            $table->string('fields_database');
             $table->integer('last_line')->default(0);
             $table->boolean('finished')->default(0);
             $table->timestamps();
