@@ -9,7 +9,7 @@
 <body>
 
 <form action="/override" id="form" method="post">
-    <div class="modal fade" tabindex="-1" role="dialog" id="myModal">
+    <div class="modal fade" tabindex="-1" role="dialog" id="myModal" data-backdrop="static">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -46,6 +46,10 @@
 <script>
     $(document).ready(function () {
         $('#myModal').modal('toggle');
+
+
+        $('#myModal').modal({backdrop: 'static', keyboard: false});
+
 
         $('button').on('click', function () {
             $('#value').val($(this).val());
