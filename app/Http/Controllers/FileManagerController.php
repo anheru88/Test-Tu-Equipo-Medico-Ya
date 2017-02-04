@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 
 use App\File;
+use App\Image;
 use App\Repositories\Category\ICategoryRepository;
 use App\Repositories\File\FileRepository;
 use App\Repositories\Product\ProductRepository;
@@ -156,8 +157,10 @@ class FileManagerController extends Controller
         $array_of_data = $this->proccessProducts($File, $fields_database, $fields_file, $select);
 
         if (!$array_of_data[0]) {
+
             return view('question', ['name' => $array_of_data[1], 'id' => $File->id]);
         }
+
 
         return redirect('/');
 
@@ -297,23 +300,23 @@ class FileManagerController extends Controller
 
         Excel::load($File->path_file, function ($reader) use ($File, $fields_database, $fields_file, $select) {
 
-            $results = $reader->remember(10)->get()->toArray();
+            $results = $reader->get()->toArray();
 
             $index = $File->last_line;
 
             /**
              * @param $results
              * @param $i
-             * @param $name_colum
+             * @param $name_value
              * @param $fields_database
              * @param $fields_file
              * @return array
              */
-            function setDataProduct($results, $i, $name_colum, $fields_database, $fields_file): array
+            function setDataProduct($results, $i, $name_value, $fields_database, $fields_file)
             {
                 $data = [];
 
-                $data['name'] = $results[$i][$name_colum];
+                $data['name'] = $name_value;
 
                 $index_file_url = array_search('file', $fields_database);
                 $index_description = array_search('description', $fields_database);
@@ -334,12 +337,11 @@ class FileManagerController extends Controller
                     $data['price'] = $results[$i][$price_colum];
                     return $data;
                 }
+
                 return $data;
             }
 
-
             for ($i = $index; $i < count($results); $i++) {
-
                 /**
                  * Busca el indice dentro del arreglo de la base de datos.
                  */
@@ -354,16 +356,29 @@ class FileManagerController extends Controller
                  * Chequeamos en nuestro repositorio si existe algun producto con el mismo valor
                  */
                 $name_value = $results[$i][$name_colum];
+
+                /**
+                 * Verificamos si existe el producto en la base de datos
+                 */
                 $bool = $this->productRepository->checkIfExistByName($name_value);
 
+                /**
+                 * En caso de que exista el producto, procedemos a mostrar los mensajes de
+                 * 0. Sobreescribir el producto
+                 * 1. Omitir El Producto
+                 * 2. Sobreescribir todo
+                 * 3. Omitir todo
+                 */
                 if ($bool) {
+
                     if ($select != null) {
+
                         switch ($select) {
                             case 0:
                             case 2:
-                                $data = setDataProduct($results, $i, $name_colum, $fields_database, $fields_file);
+                                $data = setDataProduct($results, $i, $name_value, $fields_database, $fields_file);
 
-                                $product = $this->productRepository->overrideByName($name_value, $data);
+                                $product = $this->productRepository->overrideByName($data);
 
                                 $index_category = array_keys($fields_database, 'category');
 
@@ -378,16 +393,19 @@ class FileManagerController extends Controller
                                     $product->categories()->attach($category->id);
                                 }
 
-                                $i++;
+                                $index_images = array_keys($fields_database, 'image');
+
+                                for ($k = 0; $k < count($index_images); $k++) {
+                                    $image_url = $results[$i][$fields_file[$index_images[$k]]];
+
+
+                                    $image = new Image();
+                                    $image->external_url = $image_url;
+
+                                    $product->images()->save($image);
+                                }
 
                                 break;
-                            case 1:
-                            case 3:
-
-                                $i++;
-
-                                break;
-
                         }
 
                         if ($select == 2 or $select == 3) {
@@ -395,15 +413,16 @@ class FileManagerController extends Controller
                         }
                     }
 
-                    $File->last_line = $i;
+                    $File->last_line = $i + 1;
+
                     $File->save();
 
-                    $GLOBALS['array_of_data'] = [false, $results[$File->last_line][$name_colum]];
+                    $GLOBALS['array_of_data'] = [false, $name_value];
 
                     return 0;
                 }
 
-                $data = setDataProduct($results, $i, $name_colum, $fields_database, $fields_file);
+                $data = setDataProduct($results, $i, $name_value, $fields_database, $fields_file);
 
                 $product = $this->productRepository->create($data);
 
@@ -420,13 +439,22 @@ class FileManagerController extends Controller
                     $product->categories()->attach($category->id);
                 }
 
+                $index_images = array_keys($fields_database, 'image');
+
+                for ($k = 0; $k < count($index_images); $k++) {
+                    $image_url = $results[$i][$fields_file[$index_images[$k]]];
+
+                    $image = new Image();
+                    $image->external_url = $image_url;
+
+                    $product->images()->save($image);
+                }
+
+                $File->last_line = $i;
+                $File->save();
             }
 
-            $File->last_line = count($results) - 1;
-            $File->finished = 1;
-            $File->save();
-
-            $GLOBALS['array_of_data'] = ['true'];
+            $GLOBALS['array_of_data'] = [true];
 
         });
 
