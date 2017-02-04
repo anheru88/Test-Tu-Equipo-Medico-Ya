@@ -27,9 +27,9 @@ class ProductRepository extends DbRepository
         return true;
     }
 
-    public function overrideByName($name, $data)
+    public function overrideByName($data)
     {
-        $product = $this->model->whereName($name)->first();
+        $product = $this->model->whereName($data['name'])->first();
 
         $product = $this->getById($product->id);
 
