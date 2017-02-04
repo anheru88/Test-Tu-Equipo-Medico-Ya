@@ -154,16 +154,14 @@ class FileManagerController extends Controller
         $fields_database = explode(',', $File['fields_database']);
         $fields_file = explode(',', $File['fields_file']);
 
-        $array_of_data = $this->proccessProducts($File, $fields_database, $fields_file, $select);
+        $array_of_data = $this->proccesProductOverride($File, $fields_database, $fields_file, $select);
 
         if (!$array_of_data[0]) {
 
             return view('question', ['name' => $array_of_data[1], 'id' => $File->id]);
         }
 
-
         return redirect('/');
-
     }
 
     /**
@@ -206,6 +204,8 @@ class FileManagerController extends Controller
      * En este metodo se verifica si las categorias existen, o no,
      * si no existen se crean las nuevas.
      * @param File $File
+     * @param $fields_database
+     * @param $fields_file
      */
     private function processCategories(File $File, $fields_database, $fields_file)
     {
@@ -290,56 +290,103 @@ class FileManagerController extends Controller
      * @param File $File
      * @param $fields_database
      * @param $fields_file
-     * @param null $select
      * @return
      */
-    private function proccessProducts(File $File, $fields_database, $fields_file, $select = null)
+    private function proccessProducts(File $File, $fields_database, $fields_file)
     {
 
         global $array_of_data;
 
-        Excel::load($File->path_file, function ($reader) use ($File, $fields_database, $fields_file, $select) {
+        Excel::load($File->path_file, function ($reader) use ($File, $fields_database, $fields_file) {
 
             $results = $reader->get()->toArray();
 
-            $index = $File->last_line;
 
-            /**
-             * @param $results
-             * @param $i
-             * @param $name_value
-             * @param $fields_database
-             * @param $fields_file
-             * @return array
-             */
-            function setDataProduct($results, $i, $name_value, $fields_database, $fields_file)
-            {
-                $data = [];
+            for ($i = 0; $i < count($results); $i++) {
+                /**
+                 * Busca el indice dentro del arreglo de la base de datos.
+                 */
+                $index_name = array_search('name', $fields_database);
 
-                $data['name'] = $name_value;
+                /**
+                 * Guardamos el nombre de la columna pertenenciente al nombre del producto
+                 */
+                $name_colum = $fields_file[$index_name];
 
-                $index_file_url = array_search('file', $fields_database);
-                $index_description = array_search('description', $fields_database);
-                $index_price = array_search('price', $fields_database);
+                /**
+                 * Chequeamos en nuestro repositorio si existe algun producto con el mismo valor
+                 */
+                $name_value = $results[$i][$name_colum];
 
-                if ($index_file_url != false) {
-                    $file_url_colum = $fields_file[$index_file_url];
-                    $data['file_url'] = $results[$i][$file_url_colum];
+                /**
+                 * Verificamos si existe el producto en la base de datos
+                 */
+                $bool = $this->productRepository->checkIfExistByName($name_value);
+
+                if ($bool) {
+
+                    $File->last_line = $i;
+
+                    $File->save();
+
+                    $GLOBALS['array_of_data'] = [false, $name_value];
+
+                    return 0;
+                } else {
+                    $data = $this->setDataProduct($results, $i, $name_value, $fields_database, $fields_file);
+
+                    $product = $this->productRepository->create($data);
+
+                    $index_category = array_keys($fields_database, 'category');
+
+                    $product->categories()->detach();
+
+                    for ($j = 0; $j < count($index_category); $j++) {
+
+                        $category_name = $results[$i][$fields_file[$index_category[$j]]];
+
+                        $category = $this->categoryRepository->getbyName($category_name);
+
+                        $product->categories()->attach($category->id);
+                    }
+
+                    $index_images = array_keys($fields_database, 'image');
+
+                    for ($k = 0; $k < count($index_images); $k++) {
+                        $image_url = $results[$i][$fields_file[$index_images[$k]]];
+
+                        $image = new Image();
+                        $image->external_url = $image_url;
+
+                        $product->images()->save($image);
+                    }
                 }
 
-                if ($index_description != false) {
-                    $description_colum = $fields_file[$index_description];
-                    $data['description'] = $results[$i][$description_colum];
-                }
 
-                if ($index_price != false) {
-                    $price_colum = $fields_file[$index_price];
-                    $data['price'] = $results[$i][$price_colum];
-                    return $data;
-                }
-
-                return $data;
             }
+
+            $GLOBALS['array_of_data'] = [true];
+
+        });
+
+        return $array_of_data;
+    }
+
+    /**
+     * @param File $File
+     * @param $fields_database
+     * @param $fields_file
+     * @param $option
+     * @return mixed
+     */
+    private function proccesProductOverride(File $File, $fields_database, $fields_file, $option)
+    {
+        global $array_of_data;
+
+        Excel::load($File->path_file, function ($reader) use ($File, $fields_database, $fields_file, $option) {
+            $results = $reader->get()->toArray();
+
+            $index = $File->last_line;
 
             for ($i = $index; $i < count($results); $i++) {
                 /**
@@ -362,104 +409,156 @@ class FileManagerController extends Controller
                  */
                 $bool = $this->productRepository->checkIfExistByName($name_value);
 
-                /**
-                 * En caso de que exista el producto, procedemos a mostrar los mensajes de
-                 * 0. Sobreescribir el producto
-                 * 1. Omitir El Producto
-                 * 2. Sobreescribir todo
-                 * 3. Omitir todo
-                 */
                 if ($bool) {
+                    switch ($option) {
+                        case  0:
+                            $data = $this->setDataProduct($results, $i, $name_value, $fields_database, $fields_file);
 
-                    if ($select != null) {
+                            $product = $this->productRepository->overrideByName($data);
 
-                        switch ($select) {
-                            case 0:
-                            case 2:
-                                $data = setDataProduct($results, $i, $name_value, $fields_database, $fields_file);
+                            $index_category = array_keys($fields_database, 'category');
 
-                                $product = $this->productRepository->overrideByName($data);
+                            $product->categories()->detach();
 
-                                $index_category = array_keys($fields_database, 'category');
+                            for ($j = 0; $j < count($index_category); $j++) {
 
-                                $product->categories()->detach();
+                                $category_name = $results[$i][$fields_file[$index_category[$j]]];
 
-                                for ($j = 0; $j < count($index_category); $j++) {
+                                $category = $this->categoryRepository->getbyName($category_name);
 
-                                    $category_name = $results[$i][$fields_file[$index_category[$j]]];
+                                $product->categories()->attach($category->id);
+                            }
 
-                                    $category = $this->categoryRepository->getbyName($category_name);
+                            $index_images = array_keys($fields_database, 'image');
 
-                                    $product->categories()->attach($category->id);
-                                }
-
-                                $index_images = array_keys($fields_database, 'image');
-
-                                for ($k = 0; $k < count($index_images); $k++) {
-                                    $image_url = $results[$i][$fields_file[$index_images[$k]]];
+                            for ($k = 0; $k < count($index_images); $k++) {
+                                $image_url = $results[$i][$fields_file[$index_images[$k]]];
 
 
-                                    $image = new Image();
-                                    $image->external_url = $image_url;
+                                $image = new Image();
+                                $image->external_url = $image_url;
 
-                                    $product->images()->save($image);
-                                }
-
-                                break;
-                        }
-
-                        if ($select == 2 or $select == 3) {
+                                $product->images()->save($image);
+                            }
+                            $option = 4;
                             break;
-                        }
+                        case 1:
+                            $option = 4;
+                            break;
+                        case 2:
+                            $data = $this->setDataProduct($results, $i, $name_value, $fields_database, $fields_file);
+
+                            $product = $this->productRepository->overrideByName($data);
+
+                            $index_category = array_keys($fields_database, 'category');
+
+                            $product->categories()->detach();
+
+                            for ($j = 0; $j < count($index_category); $j++) {
+
+                                $category_name = $results[$i][$fields_file[$index_category[$j]]];
+
+                                $category = $this->categoryRepository->getbyName($category_name);
+
+                                $product->categories()->attach($category->id);
+                            }
+
+                            $index_images = array_keys($fields_database, 'image');
+
+                            for ($k = 0; $k < count($index_images); $k++) {
+                                $image_url = $results[$i][$fields_file[$index_images[$k]]];
+
+
+                                $image = new Image();
+                                $image->external_url = $image_url;
+
+                                $product->images()->save($image);
+                            }
+
+                            break;
+                        case 3:
+                            break;
+                        case 4:
+                            $File->last_line = $i;
+
+                            $File->save();
+
+                            $GLOBALS['array_of_data'] = [false, $name_value];
+
+                            return 0;
+                    }
+                } else {
+                    $data = $this->setDataProduct($results, $i, $name_value, $fields_database, $fields_file);
+
+                    $product = $this->productRepository->create($data);
+
+                    $index_category = array_keys($fields_database, 'category');
+
+                    $product->categories()->detach();
+
+                    for ($j = 0; $j < count($index_category); $j++) {
+
+                        $category_name = $results[$i][$fields_file[$index_category[$j]]];
+
+                        $category = $this->categoryRepository->getbyName($category_name);
+
+                        $product->categories()->attach($category->id);
                     }
 
-                    $File->last_line = $i + 1;
+                    $index_images = array_keys($fields_database, 'image');
 
-                    $File->save();
+                    for ($k = 0; $k < count($index_images); $k++) {
+                        $image_url = $results[$i][$fields_file[$index_images[$k]]];
 
-                    $GLOBALS['array_of_data'] = [false, $name_value];
+                        $image = new Image();
+                        $image->external_url = $image_url;
 
-                    return 0;
+                        $product->images()->save($image);
+                    }
                 }
 
-                $data = setDataProduct($results, $i, $name_value, $fields_database, $fields_file);
+                $GLOBALS['array_of_data'] = [true];
 
-                $product = $this->productRepository->create($data);
-
-                $index_category = array_keys($fields_database, 'category');
-
-                $product->categories()->detach();
-
-                for ($j = 0; $j < count($index_category); $j++) {
-
-                    $category_name = $results[$i][$fields_file[$index_category[$j]]];
-
-                    $category = $this->categoryRepository->getbyName($category_name);
-
-                    $product->categories()->attach($category->id);
-                }
-
-                $index_images = array_keys($fields_database, 'image');
-
-                for ($k = 0; $k < count($index_images); $k++) {
-                    $image_url = $results[$i][$fields_file[$index_images[$k]]];
-
-                    $image = new Image();
-                    $image->external_url = $image_url;
-
-                    $product->images()->save($image);
-                }
-
-                $File->last_line = $i;
-                $File->save();
             }
-
-            $GLOBALS['array_of_data'] = [true];
-
         });
 
         return $array_of_data;
     }
 
+    /**
+     * @param $results
+     * @param $i
+     * @param $name_value
+     * @param $fields_database
+     * @param $fields_file
+     * @return array
+     */
+    private function setDataProduct($results, $i, $name_value, $fields_database, $fields_file)
+    {
+        $data = [];
 
+        $data['name'] = $name_value;
+
+        $index_file_url = array_search('file', $fields_database);
+        $index_description = array_search('description', $fields_database);
+        $index_price = array_search('price', $fields_database);
+
+        if ($index_file_url != false) {
+            $file_url_colum = $fields_file[$index_file_url];
+            $data['file_url'] = $results[$i][$file_url_colum];
+        }
+
+        if ($index_description != false) {
+            $description_colum = $fields_file[$index_description];
+            $data['description'] = $results[$i][$description_colum];
+        }
+
+        if ($index_price != false) {
+            $price_colum = $fields_file[$index_price];
+            $data['price'] = $results[$i][$price_colum];
+            return $data;
+        }
+
+        return $data;
+    }
 }
