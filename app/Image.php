@@ -34,7 +34,8 @@ class Image extends Model
      * @var array
      */
     protected $fillable = [
-        'name',
+        'external_url',
+        'downloaded',
         'internal_url'
     ];
 
