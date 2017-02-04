@@ -8,7 +8,25 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class Product
+ *
  * @package App
+ * @property int $id
+ * @property string $name
+ * @property string $file_url
+ * @property string $description
+ * @property int $price
+ * @property \Carbon\Carbon $created_at
+ * @property \Carbon\Carbon $updated_at
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Category[] $categories
+ * @property-read \Illuminate\Database\Eloquent\Collection|\App\Image[] $images
+ * @method static \Illuminate\Database\Query\Builder|\App\Product whereCreatedAt($value)
+ * @method static \Illuminate\Database\Query\Builder|\App\Product whereDescription($value)
+ * @method static \Illuminate\Database\Query\Builder|\App\Product whereFileUrl($value)
+ * @method static \Illuminate\Database\Query\Builder|\App\Product whereId($value)
+ * @method static \Illuminate\Database\Query\Builder|\App\Product whereName($value)
+ * @method static \Illuminate\Database\Query\Builder|\App\Product wherePrice($value)
+ * @method static \Illuminate\Database\Query\Builder|\App\Product whereUpdatedAt($value)
+ * @mixin \Eloquent
  */
 class Product extends Model
 {
