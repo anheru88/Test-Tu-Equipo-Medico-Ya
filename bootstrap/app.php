@@ -1,9 +1,9 @@
 <?php
 
-require_once __DIR__.'/../vendor/autoload.php';
+require_once __DIR__ . '/../vendor/autoload.php';
 
 try {
-    (new Dotenv\Dotenv(__DIR__.'/../'))->load();
+    (new Dotenv\Dotenv(__DIR__ . '/../'))->load();
 } catch (Dotenv\Exception\InvalidPathException $e) {
     //
 }
@@ -20,12 +20,12 @@ try {
 */
 
 $app = new Laravel\Lumen\Application(
-    realpath(__DIR__.'/../')
+    realpath(__DIR__ . '/../')
 );
 
 $app->withFacades();
 
-// $app->withEloquent();
+$app->withEloquent();
 
 /*
 |--------------------------------------------------------------------------
@@ -85,6 +85,14 @@ $app->register('Maatwebsite\Excel\ExcelServiceProvider');
 class_alias('Maatwebsite\Excel\Facades\Excel', 'Excel');
 class_alias('Illuminate\Support\Facades\Response', 'Response');
 class_alias('Illuminate\Support\Facades\Config', 'Config');
+if (!function_exists('config_path')) {
+    function config_path()
+    {
+        return base_path() . '/config';
+    }
+}
+class_alias('Illuminate\Support\Facades\File', 'File');
+$app->register(Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class);
 
 /*
 |--------------------------------------------------------------------------
@@ -98,7 +106,7 @@ class_alias('Illuminate\Support\Facades\Config', 'Config');
 */
 
 $app->group(['namespace' => 'App\Http\Controllers'], function ($app) {
-    require __DIR__.'/../app/Http/routes.php';
+    require __DIR__ . '/../app/Http/routes.php';
 });
 
 return $app;
