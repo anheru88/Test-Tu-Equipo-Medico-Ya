@@ -10,7 +10,7 @@
 
 <div class="container">
     <div class="row">
-        <form action="" id="form">
+        <form action="/" id="form" method="post" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="excelfile">Subir Archivo Excel - (XLSX) o CSV</label>
                 <input type="file" id="excelfile" name="excelfile">
@@ -21,7 +21,7 @@
                 </button>
             </div>
             <div class="form-group">
-                <button type="submit" class="btn btn-default" disabled>Enviar</button>
+                <button type="submit" class="btn btn-default" disabled id="submit">Enviar</button>
             </div>
         </form>
     </div>
@@ -59,14 +59,25 @@
 
 <script>
     $('#add_fields').on('click', function () {
-        $('#myModal').modal('toggle')
+        $('#myModal').modal('toggle');
         $('#call_modal').hide();
         for (i = 0; i < $('#campos').val(); i++) {
             $('#list_campos').append('' +
                 '<label>Columna ' + (i + 1) + ' </label>' +
-                '<input type="text" class="form-control" name="field_' + (i + 1) + '" placeholder="Campo ' + (i + 1 ) + '"/>' +
-                '');
+                '<input type="text" class="form-control" name="fields[]" placeholder="Campo ' + (i + 1 ) + '"/>' +
+                '<label> Campo Asociado </label> ' +
+                '<select class="form-control" name="selects[]    " >' +
+                '<option value="name"> Nombre del Producto </option>' +
+                '<option value="category"> Categoria del Producto </option>' +
+                '<option value="image"> Foto del Producto </option>' +
+                '<option value="file"> Url Archivo del Producto </option>' +
+                '<option value="description"> Descripción del Producto </option>' +
+                '<option value="price"> Precio del Producto </option>' +
+                '</select>'
+            );
         }
+
+        $('#submit').removeAttr('disabled');
     })
 
     $('#campos').on('input', function () {
