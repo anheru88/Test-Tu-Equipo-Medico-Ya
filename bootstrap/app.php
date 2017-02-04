@@ -94,6 +94,8 @@ if (!function_exists('config_path')) {
 class_alias('Illuminate\Support\Facades\File', 'File');
 $app->register(Barryvdh\LaravelIdeHelper\IdeHelperServiceProvider::class);
 
+$app->register('App\Providers\DatabaseServiceProvider');
+
 /*
 |--------------------------------------------------------------------------
 | Load The Application Routes
